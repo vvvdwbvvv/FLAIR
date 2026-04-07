@@ -1,10 +1,20 @@
 import sys
 import os
 import argparse
+from pathlib import Path
 from PIL import Image
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SEESR_ROOT = REPO_ROOT / "thirdparty" / "SeeSR"
+
+if not SEESR_ROOT.exists():
+    raise FileNotFoundError(
+        f"SeeSR source not found at {SEESR_ROOT}. "
+        "Run scripts/prepare_generate_caption_assets.sh first."
+    )
+
 # Add the path to the thirdparty/SeeSR directory to the Python path
-sys.path.append(os.path.abspath("./thirdparty/SeeSR"))
+sys.path.append(str(SEESR_ROOT))
 
 import torch
 from torchvision import transforms
@@ -23,6 +33,17 @@ def load_ram_model(ram_model_path: str, dape_model_path: str):
         torch.nn.Module: Loaded RAM model.
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    if not os.path.exists(ram_model_path):
+        raise FileNotFoundError(
+            f"RAM checkpoint not found at {ram_model_path}. "
+            "Place ram_swin_large_14m.pth in thirdparty/SeeSR/preset/models/"
+        )
+    if not os.path.exists(dape_model_path):
+        raise FileNotFoundError(
+            f"DAPE checkpoint not found at {dape_model_path}. "
+            "Run scripts/prepare_generate_caption_assets.sh first."
+        )
 
     # Load the RAM model
     tag_model = ram(pretrained=ram_model_path, pretrained_condition=dape_model_path, image_size=384, vit="swin_l")
@@ -74,7 +95,7 @@ def process_images_in_directory(input_dir: str, output_file: str, tag_model):
     # Open the output file for writing captions
     with open(output_file, "w") as f:
         # Iterate through all files in the input directory
-        for filename in os.listdir(input_dir):
+        for filename in sorted(os.listdir(input_dir)):
             # Construct the full path to the image file
             image_path = os.path.join(input_dir, filename)
 
@@ -92,11 +113,14 @@ def process_images_in_directory(input_dir: str, output_file: str, tag_model):
                     print(f"Error processing {filename}: {e}")
 
 if __name__ == "__main__":
+    default_ram_model = SEESR_ROOT / "preset" / "models" / "ram_swin_large_14m.pth"
+    default_dape_model = SEESR_ROOT / "preset" / "models" / "DAPE.pth"
+
     parser = argparse.ArgumentParser(description="Generate captions for images using RAM and DAPE models.")
     parser.add_argument("--input_dir", type=str, default="data/val", help="Path to the directory containing input images.")
     parser.add_argument("--output_file", type=str, default="data/val_captions.txt", help="Path to the file where captions will be saved.")
-    parser.add_argument("--ram_model", type=str, default="/home/erbachj/scratch2/projects/var_post_samp/thirdparty/SeeSR/preset/model/ram_swin_large_14m.pth", help="Path to the pretrained RAM model.")
-    parser.add_argument("--dape_model", type=str, default="/home/erbachj/scratch2/projects/var_post_samp/thirdparty/SeeSR/preset/model/DAPE.pth", help="Path to the pretrained DAPE model.")
+    parser.add_argument("--ram_model", type=str, default=str(default_ram_model), help="Path to the pretrained RAM model.")
+    parser.add_argument("--dape_model", type=str, default=str(default_dape_model), help="Path to the pretrained DAPE model.")
 
     args = parser.parse_args()
 

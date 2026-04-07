@@ -15,11 +15,11 @@ negative_prompt: ""
 reg-shift: 0.0
 
 # === Optimization Settings ===
-optimizer: 
+optimizer:
   name: SGD
   kwargs:
-    lr: 1 
-optimizer_dataterm: 
+    lr: 1
+optimizer_dataterm:
   name: SGD
   kwargs:
     lr: 0.1
@@ -33,8 +33,8 @@ projection: False
 seed: 42
 
 # === Experiment-Specific Settings ===
-prompt: a high quality photo of a face
-degradation: 
+caption_file: ./div2k_captions.txt
+degradation:
   name: MotionBlur
   kwargs:
     kernel_size: 61
